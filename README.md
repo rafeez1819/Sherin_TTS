@@ -1,8 +1,9 @@
----
+```
 # Sherin_TTS
+# ---
 Text to Speech System
 ---
-
+```
 Folder Structure 
 
 <img width="1772" height="604" alt="image" src="https://github.com/user-attachments/assets/f8105a47-b4e3-43e2-9318-48f921dbd107" />
