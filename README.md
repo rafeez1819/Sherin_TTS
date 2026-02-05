@@ -3,7 +3,6 @@ Text to Speech System
 
 Folder Structure 
 
----
 Sherin_Project/
 ├── .vscode/
 │   └── workspace & settings
@@ -51,62 +50,61 @@ Sherin_Project/
 ├── UNIVERSAL_INSTALLER_FINAL.md
 ├── UNIVERSAL_INSTALLER_REFERENCE.md
 └── YES_ALL_FINISHED.md
----
-
 
 Key Features of Sherin TTS:
+----------------------------------------
 ✅ Full control over pitch, energy, speed, style via VoiceTune
 ✅ Speaker-aware front-end: dominant-speaker detection, band-pass filtering
 ✅ Optional fallback to CPU-only TFLite inference
 
----
-2️⃣ Detailed Data Flow:
+Detailed Data Flow:
+----------------------------------------
+   ┌─────────────────────────────┐
+   │ 1️⃣ Audio Input              │
+   │    48 kHz PCM → resample 16kHz │
+   └─────────────┬───────────────┘
+                 │
+                 ▼
+   ┌─────────────────────────────┐
+   │ 2️⃣ Noise Suppression       │
+   │    RNNoise neural filter    │
+   │    + Band-Pass Filter       │
+   └─────────────┬───────────────┘
+                 │
+                 ▼
+   ┌─────────────────────────────┐
+   │ 3️⃣ Voice Activity           │
+   │    WebRTC VAD → frame gating│
+   └─────────────┬───────────────┘
+                 │
+                 ▼
+   ┌─────────────────────────────┐
+   │ 4️⃣ Voice-Character Extraction │
+   │    Compute RMS, pitch, rate, energy │
+   └─────────────┬───────────────┘
+                 │
+                 ▼
+   ┌─────────────────────────────┐
+   │ 5️⃣ VoiceTune                │
+   │    Deterministic prosody mapping │
+   │    (prosody control)        │
+   └─────────────┬───────────────┘
+                 │
+                 ▼
+   ┌─────────────────────────────┐
+   │ 6️⃣ Neural TTS               │
+   │    FastSpeech-2 / VITS model │
+   │    + Vocoder (HiFi-GAN)      │
+   │    → mel-spectrogram → waveform │
+   └─────────────┬───────────────┘
+                 │
+                 ▼
+   ┌─────────────────────────────┐
+   │ 7️⃣ Audio Output             │
+   │    AudioTrack 16 kHz        │
+   │    Low-latency playback     │
+   └─────────────────────────────┘
 
-┌─────────────────────────────┐
-│ 1️⃣ Audio Input              │
-│ 48kHz PCM → resample 16kHz  │
-└─────────────┬───────────────┘
-              │
-              ▼
-┌─────────────────────────────┐
-│ 2️⃣ Noise Suppression       │
-│ RNNoise neural filter       │
-│ + Band-Pass Filter          │
-└─────────────┬───────────────┘
-              │
-              ▼
-┌─────────────────────────────┐
-│ 3️⃣ Voice Activity           │
-│ WebRTC VAD → frame gating   │
-└─────────────┬───────────────┘
-              │
-              ▼
-┌─────────────────────────────┐
-│ 4️⃣ Voice-Character Extraction│
-│ Compute RMS, pitch, rate, energy │
-└─────────────┬───────────────┘
-              │
-              ▼
-┌─────────────────────────────┐
-│ 5️⃣ VoiceTune                │
-│ Deterministic prosody mapping│
-│ (prosody control)            │
-└─────────────┬───────────────┘
-              │
-              ▼
-┌─────────────────────────────┐
-│ 6️⃣ Neural TTS               │
-│ FastSpeech-2 / VITS model   │
-│ + Vocoder (HiFi-GAN) → mel → waveform │
-└─────────────┬───────────────┘
-              │
-              ▼
-┌─────────────────────────────┐
-│ 7️⃣ Audio Output             │
-│ AudioTrack (16 kHz)         │
-│ low-latency playback        │
-└─────────────────────────────┘
----
 
 Sherin TTS – Full System Architecture & Details
 1️⃣ High-Level Overview
