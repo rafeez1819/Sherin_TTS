@@ -1,9 +1,9 @@
-```
+
 # Sherin_TTS
 # ---
 Text to Speech System
 ---
-```
+
 Folder Structure 
 
 <img width="1772" height="604" alt="image" src="https://github.com/user-attachments/assets/f8105a47-b4e3-43e2-9318-48f921dbd107" />
@@ -112,6 +112,7 @@ Style / Emotion tokens	Included in VoiceTune → TTS	Fine-grained expressive out
 
 Android APK structure:
 
+```
 app/
  ├─ src/main/java/com/example/nnc/
  │   ├─ RNNoise.so
@@ -119,6 +120,7 @@ app/
  │   ├─ FastSpeech2.tflite
  │   └─ HiFiGAN.tflite
  └─ AudioTrack + AudioRecord setup
+```
 
 
 Cross-platform: same C/C++ backend and TFLite models can run on Linux/Windows via WSL or native C++ wrappers.
@@ -305,7 +307,7 @@ If you are **building a modern Android voice‑assistant** that needs *speaker�
 If you are **targeting iOS/macOS** and just need a quick, high‑quality voice with *zero* integration effort, go with **Apople TTS**.
 
 ---
-
+```
 ### 📦 What this have.
 
 1. **Full architectural description**.  
@@ -314,7 +316,7 @@ If you are **targeting iOS/macOS** and just need a quick, high‑quality voice w
 4. **Feature‑by‑feature comparison** 
 5. **Decision matrix**
 6. **Starter code snippets**  
-
+```
 
 
 
