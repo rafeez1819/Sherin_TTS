@@ -6,105 +6,58 @@ Folder Structure
 Sherin_TTS – Text-to-Speech System
 ===================================
 
-Folder Structure
-----------------
-Sherin_Project/
-├── .vscode/                        │ workspace & settings
-├── backgrounddata/                 │ raw audio / TTS data
-├── logs/                            │ runtime logs
-├── node_modules/                    │ npm dependencies
-├── public/                          │ frontend assets: HTML, CSS, JS
-├── .envexample
-├── AMiOS_TTS.txt
-├── Sherin_TTS.txt
-├── audio_processor.py
-├── backgroundservice.js
-├── server.js
-├── cli.js
-├── sherinttsservice
-├── test_audio_processor.py
-├── package.json
-├── package-lock.json
-├── openapi.yaml
-├── install-android.sh
-├── install.bat
-├── install.sh
-├── runbackground.bat
-├── runbackground.sh
-├── createapk.md
-├── DEPLOYMENT.md
-├── docker-compose.yml
-├── Dockerfile
-├── FILES_OVERVIEW.md
-├── FINAL_SUMMARY.md
-├── GETTING_STARTED.md
-├── INSTALLATION_GUIDE.md
-├── INSTALLER_SUMMARY.md
-├── PLATFORM_GUID.md
-├── PROJECT_SUMMARY.md
-├── QUICKSTART.md
-├── README.md
-├── SHIP_THIS.md
-├── START_HERE.md
-├── UNIVERSAL_INSTALLER.md
-├── UNIVERSAL_INSTALLER_FINAL.md
-├── UNIVERSAL_INSTALLER_REFERENCE.md
-└── YES_ALL_FINISHED.md
+Comparison: Apple TTS vs Sherin TTS
+===================================
 
-Key Features
-------------
-✅ Full control over pitch, energy, speed, style via VoiceTune
-✅ Speaker-aware front-end: dominant-speaker detection, band-pass filtering
-✅ Optional fallback to CPU-only TFLite inference
+Both are written as full system diagrams, with concrete components, data flow, libraries, resources, and pros/cons for embedding in mobile products like Samsung Galaxy Fold 4.
 
-Sherin TTS – Detailed Data Flow
--------------------------------
-   ┌───────────────────────────────┐
-   │ 1️⃣ Audio Input                │
-   │    48kHz PCM → resample 16kHz │
-   └─────────────┬─────────────────┘
-                 │
-                 ▼
-   ┌───────────────────────────────┐
-   │ 2️⃣ Noise Suppression          │
-   │    RNNoise neural filter      │
-   │    + Band-Pass Filter         │
-   └─────────────┬─────────────────┘
-                 │
-                 ▼
-   ┌───────────────────────────────┐
-   │ 3️⃣ Voice Activity             │
-   │    WebRTC VAD → frame gating  │
-   └─────────────┬─────────────────┘
-                 │
-                 ▼
-   ┌───────────────────────────────┐
-   │ 4️⃣ Voice-Character Extraction│
-   │    Compute RMS, pitch, rate,  │
-   │    energy                      │
-   └─────────────┬─────────────────┘
-                 │
-                 ▼
-   ┌───────────────────────────────┐
-   │ 5️⃣ VoiceTune                  │
-   │    Deterministic prosody map  │
-   │    (prosody control)          │
-   └─────────────┬─────────────────┘
-                 │
-                 ▼
-   ┌───────────────────────────────┐
-   │ 6️⃣ Neural TTS                 │
-   │    FastSpeech-2 / VITS model  │
-   │    + Vocoder (HiFi-GAN)       │
-   │    → mel-spectrogram → waveform │
-   └─────────────┬─────────────────┘
-                 │
-                 ▼
-   ┌───────────────────────────────┐
-   │ 7️⃣ Audio Output               │
-   │    AudioTrack (16 kHz)        │
-   │    Low-latency playback       │
-   └───────────────────────────────┘
+1️⃣ Apple TTS – On-device Neural TTS (iOS/macOS)
+
++--------------------+---------------------------------------------------------------+--------------------------------------------------------+----------------------------------------------------------+
+| Layer              | What it does                                                  | Typical Implementation (Apple)                         | Open-source Equivalents (for Android)                   |
++--------------------+---------------------------------------------------------------+--------------------------------------------------------+----------------------------------------------------------+
+| 1. Audio Front-end | Captures raw PCM (48 kHz, 16-bit) from built-in mic or USB   | AVAudioEngine + AVAudioInputNode (iOS/macOS)          | AudioRecord / Oboe                                      |
+| 2. Front-end DSP   | Aggressive hardware A-EC, beam-forming, AGC; no software NN  | Built-in Apple Audio Hardware (Neural Engine accel.)  | RNNoise / DeepFilterNet-lite (software fallback)        |
+| 3. Linguistic FE   | Text → phoneme + lexical stress + prosody-tags               | SSML → AppleSpeechSynthesizer parses it               | libtess2 / Open-Source Phonemizer (g2p-en)             |
+| 4. Prosody Engine  | Neural style-token network: text + SSML → pitch, energy, dur | Apple Neural-TTS (GAN-like + Flow)                    | FastSpeech-2 / VITS with variance adapters             |
+| 5. Acoustic Model  | Predicts mel-spectrogram → Neural Vocoder                    | AVSpeechSynthesizer (~30 ms latency, MOS ~4.7)        | FastSpeech-2 + HiFi-GAN / VITS (fine-tuned)           |
+| 6. Audio Output    | 24-bit PCM → DAC → speaker                                    | AVAudioEngine → AVAudioOutputNode                     | AudioTrack on Android (low-latency mode)               |
+| 7. Policy/Privacy  | Fully offline; no telemetry unless user opts-in             | Same                                                   | Same – fully offline                                   |
++--------------------+---------------------------------------------------------------+--------------------------------------------------------+----------------------------------------------------------+
+
+Typical resource numbers (Apple Silicon iPhone 14 / iPad Pro, comparable to Fold 4):
+
++-------------------------+---------------------+
+| Metric                  | Approx. Value       |
++-------------------------+---------------------+
+| Model size (TTS+vocoder)| 150–200 MB          |
+| RAM at runtime          | 300–500 MB peak     |
+| CPU usage               | <5% high-end A-series / ~1 core Snapdragon |
+| GPU/NPU                 | Apple Neural Engine | 
+| Latency                 | ~30 ms per 1s utterance |
+| Battery impact          | ~1% per hour TTS   |
++-------------------------+---------------------+
+
+2️⃣ Sherin TTS – Custom On-device Speaker-aware TTS (Android)
+
++--------------------+---------------------------------------------------------------+--------------------------------------------------------+
+| Stage              | Implementation                                               | Notes / Benefits                                      |
++--------------------+---------------------------------------------------------------+--------------------------------------------------------+
+| Audio Capture       | Android AudioRecord / Oboe                                    | 48kHz → resample 16kHz, mono                           |
+| Noise Suppression   | RNNoise neural filter + band-pass FIR                        | Dominant-speaker filtering, male/female/child bands   |
+| Voice Activity      | WebRTC VAD                                                    | Frame gating, skips silent frames                      |
+| Voice-Character     | RMS, pitch, rate, energy extraction (Kotlin)                 | Inputs for deterministic prosody                       |
+| Prosody Mapping     | VoiceTune.kt                                                  | Maps voice features → pitch, speed, energy            |
+| Neural TTS          | FastSpeech-2 / VITS + HiFi-GAN / NNAPI                       | Low-latency synthesis; optional fallback to CPU TFLite|
+| Audio Playback      | AudioTrack (16kHz)                                           | Low-latency output                                     |
++--------------------+---------------------------------------------------------------+--------------------------------------------------------+
+
+Typical runtime (Samsung Galaxy Fold 4):
+
++------------------------+----------------------+------------------+-------------------+
+| Stage                  | CPU / 20ms frame    | RAM peak          | Latency           |
++------------------------+----------------------+------------------+-------------------+
+| RNNoise                 | 0.8 ms             | 1 MB
 
 Component Breakdown
 ------------------
