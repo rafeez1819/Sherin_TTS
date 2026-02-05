@@ -3,86 +3,16 @@ Text to Speech System
 
 Folder Structure 
 
-Sherin_TTS – Text-to-Speech System
-===================================
+<img width="1772" height="604" alt="image" src="https://github.com/user-attachments/assets/f8105a47-b4e3-43e2-9318-48f921dbd107" />
 
-Comparison: Apple TTS vs Sherin TTS
-===================================
 
-Both are written as full system diagrams, with concrete components, data flow, libraries, resources, and pros/cons for embedding in mobile products like Samsung Galaxy Fold 4.
+<img width="1211" height="625" alt="image" src="https://github.com/user-attachments/assets/593e1a14-e92f-494c-b440-fe33f1f1b895" />
 
-1️⃣ Apple TTS – On-device Neural TTS (iOS/macOS)
-
-+--------------------+---------------------------------------------------------------+--------------------------------------------------------+----------------------------------------------------------+
-| Layer              | What it does                                                  | Typical Implementation (Apple)                         | Open-source Equivalents (for Android)                   |
-+--------------------+---------------------------------------------------------------+--------------------------------------------------------+----------------------------------------------------------+
-| 1. Audio Front-end | Captures raw PCM (48 kHz, 16-bit) from built-in mic or USB   | AVAudioEngine + AVAudioInputNode (iOS/macOS)          | AudioRecord / Oboe                                      |
-| 2. Front-end DSP   | Aggressive hardware A-EC, beam-forming, AGC; no software NN  | Built-in Apple Audio Hardware (Neural Engine accel.)  | RNNoise / DeepFilterNet-lite (software fallback)        |
-| 3. Linguistic FE   | Text → phoneme + lexical stress + prosody-tags               | SSML → AppleSpeechSynthesizer parses it               | libtess2 / Open-Source Phonemizer (g2p-en)             |
-| 4. Prosody Engine  | Neural style-token network: text + SSML → pitch, energy, dur | Apple Neural-TTS (GAN-like + Flow)                    | FastSpeech-2 / VITS with variance adapters             |
-| 5. Acoustic Model  | Predicts mel-spectrogram → Neural Vocoder                    | AVSpeechSynthesizer (~30 ms latency, MOS ~4.7)        | FastSpeech-2 + HiFi-GAN / VITS (fine-tuned)           |
-| 6. Audio Output    | 24-bit PCM → DAC → speaker                                    | AVAudioEngine → AVAudioOutputNode                     | AudioTrack on Android (low-latency mode)               |
-| 7. Policy/Privacy  | Fully offline; no telemetry unless user opts-in             | Same                                                   | Same – fully offline                                   |
-+--------------------+---------------------------------------------------------------+--------------------------------------------------------+----------------------------------------------------------+
-
-Typical resource numbers (Apple Silicon iPhone 14 / iPad Pro, comparable to Fold 4):
-
-+-------------------------+---------------------+
-| Metric                  | Approx. Value       |
-+-------------------------+---------------------+
-| Model size (TTS+vocoder)| 150–200 MB          |
-| RAM at runtime          | 300–500 MB peak     |
-| CPU usage               | <5% high-end A-series / ~1 core Snapdragon |
-| GPU/NPU                 | Apple Neural Engine | 
-| Latency                 | ~30 ms per 1s utterance |
-| Battery impact          | ~1% per hour TTS   |
-+-------------------------+---------------------+
-
-2️⃣ Sherin TTS – Custom On-device Speaker-aware TTS (Android)
-
-+--------------------+---------------------------------------------------------------+--------------------------------------------------------+
-| Stage              | Implementation                                               | Notes / Benefits                                      |
-+--------------------+---------------------------------------------------------------+--------------------------------------------------------+
-| Audio Capture       | Android AudioRecord / Oboe                                    | 48kHz → resample 16kHz, mono                           |
-| Noise Suppression   | RNNoise neural filter + band-pass FIR                        | Dominant-speaker filtering, male/female/child bands   |
-| Voice Activity      | WebRTC VAD                                                    | Frame gating, skips silent frames                      |
-| Voice-Character     | RMS, pitch, rate, energy extraction (Kotlin)                 | Inputs for deterministic prosody                       |
-| Prosody Mapping     | VoiceTune.kt                                                  | Maps voice features → pitch, speed, energy            |
-| Neural TTS          | FastSpeech-2 / VITS + HiFi-GAN / NNAPI                       | Low-latency synthesis; optional fallback to CPU TFLite|
-| Audio Playback      | AudioTrack (16kHz)                                           | Low-latency output                                     |
-+--------------------+---------------------------------------------------------------+--------------------------------------------------------+
 
 Typical runtime (Samsung Galaxy Fold 4):
 
-+------------------------+----------------------+------------------+-------------------+
-| Stage                  | CPU / 20ms frame    | RAM peak          | Latency           |
-+------------------------+----------------------+------------------+-------------------+
-| RNNoise                 | 0.8 ms             | 1 MB
+<img width="946" height="732" alt="image" src="https://github.com/user-attachments/assets/11bb367f-2aec-4237-9ce5-5e4bae81c88d" />
 
-Component Breakdown
-------------------
-#  Component                      │ Implementation / Repo                  │ Size      │ License
-1  Audio capture                  │ AudioRecord / Oboe                     │ 0 KB      │ Apache-2
-2a RNNoise                        │ https://github.com/pengzhendong/pyrnnoise │ ~1 MB   │ BSD-3
-2b Band-Pass Filter               │ Kotlin Butterworth FIR                 │ <50 KB    │ MIT
-2c WebRTC VAD                     │ https://github.com/wiseman/py-webrtcvad │ 200 KB  │ BSD-3
-3  Voice-Character Extraction     │ Kotlin / autocorr lib                  │ <100 KB   │ MIT
-4  VoiceTune                       │ VoiceTune.kt                            │ 10 KB    │ MIT
-5a FastSpeech-2                    │ TFLite model.tflite                    │ 80-120 MB │ Apache-2
-5b HiFi-GAN / VITS Vocoder         │ Included in model.tflite               │ included │ Apache-2
-5c NNAPI Delegate                  │ TF Lite GPU delegate                    │ ~5 MB    │ Apache-2
-6  Audio Playback                  │ AudioTrack (low-latency PCM)           │ 0 KB     │ Apache-2
-
-Runtime Performance (Samsung Fold 4)
-------------------------------------
-Stage                     │ CPU/frame │ RAM      │ Latency
-RNNoise                    │ 0.8 ms   │ 1 MB     │ +0.8 ms
-Band-Pass FIR              │ 0.3 ms   │ <5 MB    │ +0.3 ms
-VAD                        │ 0.15 ms  │ negligible │ +0.15 ms
-Pitch/Rate Estimation      │ 0.5 ms   │ <5 MB    │ +0.5 ms
-VoiceTune Mapping          │ 0.07 ms  │ <1 MB    │ +0.07 ms
-Neural TTS (NNAPI)         │ 6-8 ms   │ 250-300 MB│ +6-8 ms
-AudioTrack Output           │ 0.2 ms   │ negligible │ +0.2 ms
 
 ✅ Total latency per 1 s utterance: ≤70 ms
 
@@ -130,44 +60,8 @@ Speaker-aware front-end: dominant-speaker detection, band-pass filtering
 
 Optional fallback to CPU-only TFLite inference
 ---
-2️⃣ Detailed Data Flow
-┌───────────────────────┐
-│   1️⃣ Audio Input      48kHz PCM → resample 16kHz
-└─────────┬─────────────┘
-          │
-          ▼
-┌───────────────────────┐
-│  2️⃣ Noise Suppression  RNNoise neural filter
-│  + Band-Pass Filter   │
-└─────────┬─────────────┘
-          │
-          ▼
-┌───────────────────────┐
-│  3️⃣ Voice Activity   WebRTC VAD → frame gating
-└─────────┬─────────────┘
-          │
-          ▼
-┌───────────────────────┐
-│  4️⃣ Voice-Character  Compute RMS, pitch, rate, energy
-│      Extraction       │
-└─────────┬─────────────┘
-          │
-          ▼
-┌───────────────────────┐
-│  5️⃣ VoiceTune         Deterministic prosody mapping
-│     (prosody control) │
-└─────────┬─────────────┘
-          │
-          ▼
-┌───────────────────────┐
-│  6️⃣ Neural TTS       FastSpeech-2 / VITS model
-│      + Vocoder      (HiFi-GAN) → mel → waveform
-└─────────┬─────────────┘
-          │
-          ▼
-┌───────────────────────┐
-│  7️⃣ Audio Output     AudioTrack (16 kHz) low-latency
-└───────────────────────┘
+<img width="745" height="657" alt="image" src="https://github.com/user-attachments/assets/df0a870c-be9f-47a9-942c-d74f186c9cac" />
+
 ---
 
 Key Notes:
@@ -293,35 +187,8 @@ Both are written out as **full system diagrams**, a list of the concrete compone
 ### 2️⃣.1  High‑level data flow
 
 ```
-┌───────────────────────┐   ┌───────────────────────┐   ┌───────────────────────┐
-│   1️⃣  Mic Input       │──▶│   2️⃣  RNNoise +      │──▶│   3️⃣  Voice‑Character│
-│   (48 kHz → 16 kHz)   │   │   Band‑Pass (male/ │   │   Extraction        │
-│                       │   │   female/child)      │   │   (energy, pitch,   │
-│                       │   │                       │   │   rate, confidence)│
-└───────────────────────┘   └───────────────────────┘   └───────────────────────┘
-          │                           │                           │
-          ▼                           ▼                           ▼
-   ┌───────────────────────┐   ┌───────────────────────┐   ┌───────────────────────┐
-   │   4️⃣  Voice‑Tune    │──▶│   5️⃣  Neural TTS      │──▶│   6️⃣  AudioTrack     │
-   │   (prosody mapping) │   │   (FastSpeech‑2 /    │   │   (playback @16 kHz) │
-   │                      │   │   VITS + NNAPI)     │   │                       │
-   └───────────────────────┘   └───────────────────────┘   └───────────────────────┘
+<img width="1428" height="749" alt="image" src="https://github.com/user-attachments/assets/7b0e2e44-a602-4a5b-9540-07337f1ed45a" />
 ```
-
-### 2️⃣.2  Component list (what you have to ship)
-
-| # | Component | Repo / Package | Size on device | License |
-|---|-----------|----------------|----------------|---------|
-| **1** | **Audio capture** | Android `AudioRecord` (UNPROCESSED) **or** Oboe | 0 KB (system) | Apache‑2 |
-| **2a** | **RNNoise** (recurrent NN noise suppressor) | <https://github.com/pengzhendong/pyrnnoise> (compiled to `librnnoise.so`) | ~1 MB | BSD‑3 |
-| **2b** | **Band‑Pass filter** (male / female / child) | Pure‑Kotlin Butterworth (order = 4) | < 50 KB | MIT |
-| **2c** | **WebRTC VAD** (voice‑activity) | <https://github.com/wiseman/py-webrtcvad> compiled to `libwebrtcvad.so` | ~200 KB | BSD‑3 |
-| **3** | **Voice‑Character extraction** (RMS, pitch, speaking‑rate) | Kotlin (libs: `librosa‑android` optional, or custom autocorr) | < 100 KB | MIT |
-| **4** | **Voice‑Tune** (deterministic prosody mapper) | Pure‑Kotlin class (`VoiceTune.kt`) | < 10 KB | MIT |
-| **5a** | **FastSpeech‑2** (duration / pitch / energy control) | TFLite‑converted checkpoint (`model.tflite`) – typically 80‑120 MB | 80‑120 MB (compressed) | Apache‑2 |
-| **5b** | **HiFi‑GAN / VITS vocoder** (optional, can be folded into the same model) | Same `model.tflite` (multi‑head) | included above | Apache‑2 |
-| **5c** | **NNAPI delegate** (optional) | `org.tensorflow:tensorflow-lite` + `tensorflow-lite-gpu` (built‑in) | runtime lib ~ 5 MB | Apache‑2 |
-| **6** | **AudioTrack** (low‑latency PCM playback) | Android system | 0 KB | Apache‑2 |
 
 ### 2️⃣.3  Runtime performance on a **Samsung Galaxy Fold 4**
 
